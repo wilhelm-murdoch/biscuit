@@ -22,15 +22,15 @@ func Round(x float64, prec int) float64 {
 }
 
 func TestProfile(t *testing.T) {
-	testTable := []*Ngram{
-		&Ngram{"  b", 1},
-		&Ngram{" bo", 1},
-		&Ngram{"boo", 1},
-		&Ngram{"ooy", 1},
-		&Ngram{"oya", 1},
-		&Ngram{"yah", 1},
-		&Ngram{"ah ", 1},
-	}
+	testTable := make(map[string]int)
+	testTable["  b"] = 1
+	testTable[" bo"] = 1
+	testTable["boo"] = 1
+	testTable["ooy"] = 1
+	testTable["oya"] = 1
+	testTable["yah"] = 1
+	testTable["ah "] = 1
+
 	label := "english"
 	text := "booyah"
 	n := 3
@@ -44,24 +44,19 @@ func TestProfile(t *testing.T) {
 			})
 
 			Convey("The profile text should be parsed into an ngram table", func() {
-				for _, ngram := range testTable {
-					if f, ok := english.FindNgram(ngram.sequence); ok {
-						So(ngram.sequence, ShouldEqual, f.sequence)
-						So(ngram.frequency, ShouldEqual, f.frequency)
+				for sequence, frequency := range testTable {
+					if f, ok := english.table[sequence]; ok {
+						So(frequency, ShouldEqual, f)
 					}
 				}
 			})
 
 			Convey("The profile ngram length should equal the specified value", func() {
 				So(english.n, ShouldEqual, n)
-				So(len(english.table[0].sequence), ShouldEqual, n)
-			})
 
-			Convey("The profile should be able to locate an associated ngram by sequence", func() {
-				ngram, ok := english.FindNgram(testTable[4].sequence)
-
-				So(ngram.sequence, ShouldEqual, testTable[4].sequence)
-				So(ok, ShouldEqual, true)
+				for sequence := range english.table {
+					So(len(sequence), ShouldEqual, n)
+				}
 			})
 		})
 	})

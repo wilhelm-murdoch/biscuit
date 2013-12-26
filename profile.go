@@ -9,7 +9,7 @@ type Profile struct {
 	label  string
 	length float64
 	n      int
-	table  []*Ngram
+	table  map[string]int
 }
 
 func NewProfile(label string, text string, n int) *Profile {
@@ -17,40 +17,28 @@ func NewProfile(label string, text string, n int) *Profile {
 
 	p.n = n
 	p.label = label
+	p.table = make(map[string]int)
 	p.Parse(text)
 	p.Length()
 
 	return p
 }
 
-func (p *Profile) FindNgram(sequence string) (*Ngram, bool) {
-	for _, ngram := range p.table {
-		if ngram.sequence == sequence {
-			return ngram, true
-		}
-	}
-	return nil, false
-}
-
 func (p *Profile) Parse(text string) {
-	chars := []rune(strings.Repeat(" ", p.n))
+	chars := make([]rune, 2*p.n)
 
-	for _, letter := range strings.Join(strings.Fields(text), " ") + " " {
-		chars = append(chars[1:], letter)
-
-		sequence := string(chars)
-		if ngram, ok := p.FindNgram(sequence); ok {
-			ngram.Increment()
-		} else {
-			p.table = append(p.table, NewNgram(sequence))
-		}
+	k := 0
+	for _, chars[k] = range strings.Join(strings.Fields(text), " ") + " " {
+		chars[p.n+k] = chars[k]
+		k = (k + 1) % p.n
+		p.table[string(chars[k:k+p.n])]++
 	}
 }
 
 func (p *Profile) Length() float64 {
 	length := 0.0
-	for _, ngram := range p.table {
-		length += math.Pow(float64(ngram.frequency), 2)
+	for _, frequency := range p.table {
+		length += math.Pow(float64(frequency), 2)
 	}
 
 	p.length = math.Pow(length, 0.5)
@@ -60,9 +48,9 @@ func (p *Profile) Length() float64 {
 
 func (p *Profile) Subtract(profile *Profile) float64 {
 	total := 0.0
-	for _, ngram1 := range p.table {
-		if ngram2, ok := profile.FindNgram(ngram1.sequence); ok {
-			total += float64(ngram1.frequency * ngram2.frequency)
+	for sequence, frequency := range p.table {
+		if f, ok := profile.table[sequence]; ok {
+			total += float64(frequency * f)
 		}
 	}
 
