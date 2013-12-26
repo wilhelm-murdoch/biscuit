@@ -47,13 +47,15 @@ func (p *Profile) Parse(text string) {
 	}
 }
 
-func (p *Profile) Length() {
+func (p *Profile) Length() float64 {
 	length := 0.0
 	for _, ngram := range p.table {
 		length += math.Pow(float64(ngram.frequency), 2)
 	}
 
 	p.length = math.Pow(length, 0.5)
+
+	return p.length
 }
 
 func (p *Profile) Subtract(profile *Profile) float64 {
