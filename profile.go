@@ -9,7 +9,7 @@ type Profile struct {
 	label  string
 	length float64
 	n      int
-	table  map[string]int
+	ngrams map[string]int
 }
 
 func NewProfile(label string, text string, n int) *Profile {
@@ -17,7 +17,7 @@ func NewProfile(label string, text string, n int) *Profile {
 
 	p.n = n
 	p.label = label
-	p.table = make(map[string]int)
+	p.ngrams = make(map[string]int)
 	p.Parse(text)
 	p.Length()
 
@@ -31,13 +31,13 @@ func (p *Profile) Parse(text string) {
 	for _, chars[k] = range strings.Join(strings.Fields(text), " ") + " " {
 		chars[p.n+k] = chars[k]
 		k = (k + 1) % p.n
-		p.table[string(chars[k:k+p.n])]++
+		p.ngrams[string(chars[k:k+p.n])]++
 	}
 }
 
 func (p *Profile) Length() float64 {
 	length := 0.0
-	for _, frequency := range p.table {
+	for _, frequency := range p.ngrams {
 		length += math.Pow(float64(frequency), 2)
 	}
 
@@ -48,8 +48,8 @@ func (p *Profile) Length() float64 {
 
 func (p *Profile) Subtract(profile *Profile) float64 {
 	total := 0.0
-	for sequence, frequency := range p.table {
-		if f, ok := profile.table[sequence]; ok {
+	for sequence, frequency := range p.ngrams {
+		if f, ok := profile.ngrams[sequence]; ok {
 			total += float64(frequency * f)
 		}
 	}

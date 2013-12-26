@@ -45,7 +45,7 @@ func TestProfile(t *testing.T) {
 
 			Convey("The profile text should be parsed into an ngram table", func() {
 				for sequence, frequency := range testTable {
-					if f, ok := english.table[sequence]; ok {
+					if f, ok := english.ngrams[sequence]; ok {
 						So(frequency, ShouldEqual, f)
 					}
 				}
@@ -54,7 +54,7 @@ func TestProfile(t *testing.T) {
 			Convey("The profile ngram length should equal the specified value", func() {
 				So(english.n, ShouldEqual, n)
 
-				for sequence := range english.table {
+				for sequence := range english.ngrams {
 					So(len(sequence), ShouldEqual, n)
 				}
 			})
