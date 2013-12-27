@@ -16,7 +16,7 @@ func TestUtil(t *testing.T) {
 
 	Convey("Subject: Sorting maps", t, func() {
 		Convey("Given an instance of a map[string]float64", func() {
-			sorted := sortedKeys(testMap)
+			sorted := SortedKeys(testMap)
 			Convey("The sort should return a []string", func() {
 				So(sorted, ShouldHaveSameTypeAs, make([]string, 5))
 			})
