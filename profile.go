@@ -30,7 +30,7 @@ func NewProfile(label string, text string, n int) *Profile {
 }
 
 // ParseFromText creates an ngram table from the specified text. This table
-// is a map that whose keys are a distinct set of n-length character sequences
+// is a map whose keys are a distinct set of n-length character sequences
 // associated with their frequency.
 func (p *Profile) ParseFromText(text string) {
 	chars := make([]rune, 2*p.n)

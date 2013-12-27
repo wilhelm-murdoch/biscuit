@@ -1,4 +1,3 @@
-// Package biscuit is used for simple linguistic computations.
 package biscuit
 
 import (
