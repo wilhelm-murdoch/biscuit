@@ -1,3 +1,4 @@
+// Package biscuit is used for simple linguistic computations.
 package biscuit
 
 import (
@@ -5,6 +6,8 @@ import (
 	"strings"
 )
 
+// Profile is a structure we use to create an NGram data model. This stores all
+// metadata associated with a processed corpus of text.
 type Profile struct {
 	label  string
 	length float64
@@ -12,19 +15,24 @@ type Profile struct {
 	ngrams map[string]int
 }
 
+// NewProfile is a factory function which returns a processed instance of a
+// Profile data model.
 func NewProfile(label string, text string, n int) *Profile {
 	p := new(Profile)
 
 	p.n = n
 	p.label = label
 	p.ngrams = make(map[string]int)
-	p.Parse(text)
+	p.ParseFromText(text)
 	p.Length()
 
 	return p
 }
 
-func (p *Profile) Parse(text string) {
+// ParseFromText creates an ngram table from the specified text. This table
+// is a map that whose keys are a distinct set of n-length character sequences
+// associated with their frequency.
+func (p *Profile) ParseFromText(text string) {
 	chars := make([]rune, 2*p.n)
 
 	k := 0
@@ -35,6 +43,9 @@ func (p *Profile) Parse(text string) {
 	}
 }
 
+// Length converts an ngram table into a vector and returns its magnitude. This
+// will be used later when executing Match, or Subtract, as a vector based
+// search
 func (p *Profile) Length() float64 {
 	length := 0.0
 	for _, frequency := range p.ngrams {
@@ -46,6 +57,10 @@ func (p *Profile) Length() float64 {
 	return p.length
 }
 
+// Subtract attempts to determine the difference between the specified profile
+// and the current profile instance. This is done by using the angle between
+// the two vector lengths and determining their cosine. This results in a float
+// between 1 and 0. The closer the return value is to 1, the better the match.
 func (p *Profile) Subtract(profile *Profile) float64 {
 	total := 0.0
 	for sequence, frequency := range p.ngrams {
@@ -57,6 +72,8 @@ func (p *Profile) Subtract(profile *Profile) float64 {
 	return total / (p.length * profile.length)
 }
 
+// Match returns the best possible match among the current profile instance
+// and the specified argument array of profile instances.
 func (p *Profile) Match(profiles ...*Profile) string {
 	scores := make(map[string]float64)
 
@@ -64,5 +81,5 @@ func (p *Profile) Match(profiles ...*Profile) string {
 		scores[profile.label] = p.Subtract(profile)
 	}
 
-	return sortedKeys(scores)[0]
+	return SortedKeys(scores)[0]
 }
