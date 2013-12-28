@@ -3,23 +3,10 @@ package biscuit
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"io/ioutil"
-	"math"
+	"log"
+	"path/filepath"
 	"testing"
 )
-
-func Round(x float64, prec int) float64 {
-	var rounder float64
-	pow := math.Pow(10, float64(prec))
-	intermed := x * pow
-	_, frac := math.Modf(intermed)
-	if frac >= 0.5 {
-		rounder = math.Ceil(intermed)
-	} else {
-		rounder = math.Floor(intermed)
-	}
-
-	return rounder / pow
-}
 
 func TestProfile(t *testing.T) {
 	testTable := make(map[string]int)
@@ -35,26 +22,25 @@ func TestProfile(t *testing.T) {
 	text := "booyah"
 	n := 3
 
-	english := NewProfile(label, text, n)
+	english := NewProfileFromText(label, text, n)
 
 	Convey("Subject: Creating profiles", t, func() {
 		Convey("Given a label, some text and an ngram length", func() {
 			Convey("The profile label should equal the specified value", func() {
-				So(english.label, ShouldEqual, label)
+				So(english.Label, ShouldEqual, label)
 			})
 
 			Convey("The profile text should be parsed into an ngram table", func() {
 				for sequence, frequency := range testTable {
-					if f, ok := english.ngrams[sequence]; ok {
+					if f, ok := english.Ngrams[sequence]; ok {
 						So(frequency, ShouldEqual, f)
 					}
 				}
 			})
 
 			Convey("The profile ngram length should equal the specified value", func() {
-				So(english.n, ShouldEqual, n)
-
-				for sequence := range english.ngrams {
+				So(english.N, ShouldEqual, n)
+				for sequence := range english.Ngrams {
 					So(len(sequence), ShouldEqual, n)
 				}
 			})
@@ -62,55 +48,63 @@ func TestProfile(t *testing.T) {
 	})
 
 	Convey("Subject: Scoring and comparing profiles", t, func() {
-		Convey("Given a corpora of sample text in French, English and German", func() {
-			text, _ := ioutil.ReadFile("./corpora/en/angel-island.txt")
-			en := string(text)
+		Convey("Given a corpora of sample text in various languages", func() {
+			corpora := make(map[string]string)
+			profiles := make(map[string]*Profile)
+			samples, _ := filepath.Glob("./corpora/*.txt")
 
-			text, _ = ioutil.ReadFile("./corpora/fr/candide.txt")
-			fr := string(text)
+			for _, file := range samples {
+				text, _ := ioutil.ReadFile(file)
+				label = filepath.Base(file)[:2]
+				corpora[label] = string(text)
+				profiles[label] = NewProfileFromText(label, corpora[label], n)
+			}
 
-			text, _ = ioutil.ReadFile("./corpora/de/coriolanus.txt")
-			de := string(text)
+			unknowns := make(map[string]string)
 
-			english := NewProfile("en", en, 3)
-			german := NewProfile("de", de, 3)
-			french := NewProfile("fr", fr, 3)
+			unknowns["de"] = "Der Kanalinspektor natrlich!"
+			unknowns["en"] = "His listeners knew that he was going to say this."
+			// unknowns["es"] = "con sus aperos formados con prendas de procedencia."
+			unknowns["es"] = "why, hello there, good sir. Fine day we're having!"
+			unknowns["fr"] = "Monsieur le baron était un des plus puissants."
+			unknowns["jp"] = "っともすずしく、さらになんの奇跡か、季節はずれというのにまだイチゴが食"
+			unknowns["th"] = "ผู้ฟัง ของเขา รู้ว่า เขากำลังจะ พูดแบบนี้ พวกเขารู้มาก"
 
 			Convey("Comparing a corpus against itself should yield an exact match", func() {
-				So(Round(german.Subtract(german), 1), ShouldBeGreaterThanOrEqualTo, 1)
-				So(Round(english.Subtract(english), 1), ShouldBeGreaterThanOrEqualTo, 1)
+				for _, profile := range profiles {
+					So(Round(profile.Subtract(profile), 1), ShouldBeGreaterThanOrEqualTo, 1)
+				}
 			})
 
 			Convey("Comparing a corpus of one language against another should yield partial match", func() {
-				difference := english.Subtract(german)
+				difference := profiles["en"].Subtract(profiles["de"])
 				So(difference, ShouldBeGreaterThanOrEqualTo, 0)
 				So(difference, ShouldBeLessThan, 1)
 			})
 
 			Convey("Comparing a corpus of one language against another should yield the same score regardless of order", func() {
-				So(german.Subtract(english), ShouldEqual, english.Subtract(german))
+				So(profiles["de"].Subtract(profiles["en"]), ShouldEqual, profiles["en"].Subtract(profiles["de"]))
 			})
 
 			Convey("The vectors of each profile should be properly calculated", func() {
-				So(french.length, ShouldEqual, french.Length())
-				So(english.length, ShouldEqual, english.Length())
-				So(german.length, ShouldEqual, german.Length())
+				for _, profile := range profiles {
+					So(profile.length, ShouldEqual, profile.Length())
+				}
 			})
 
-			Convey("French sample text should score as FR", func() {
-				unknown := NewProfile("unknown", "Voulez-vous coucher avec moi ce soir?", n)
-				So(unknown.Match(french, english, german), ShouldEqual, "fr")
-			})
+			profilesArray := make([]*Profile, 0, len(profiles))
 
-			Convey("German sample text should score as DE", func() {
-				unknown := NewProfile("unknown", "Iche bin ein Berliner.", n)
-				So(unknown.Match(french, english, german), ShouldEqual, "de")
-			})
+			for _, p := range profiles {
+				profilesArray = append(profilesArray, p)
+			}
 
-			Convey("English sample text should score as EN", func() {
-				unknown := NewProfile("unknown", "the rain in spain falls mainly on the plane.", n)
-				So(unknown.Match(french, english, german), ShouldEqual, "en")
-			})
+			for _, profile := range profiles {
+				Convey(profile.Label+" sample text should score as "+profile.Label, func() {
+					log.Print(profile.Label)
+					unknown := NewProfileFromText("unknown", unknowns[profile.Label], n)
+					So(unknown.Match(profilesArray), ShouldEqual, profile.Label)
+				})
+			}
 		})
 	})
 }

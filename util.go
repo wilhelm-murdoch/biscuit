@@ -1,6 +1,7 @@
 package biscuit
 
 import (
+	"math"
 	"sort"
 )
 
@@ -37,4 +38,18 @@ func SortedKeys(m map[string]float64) []string {
 	}
 	sort.Sort(sm)
 	return sm.s
+}
+
+func Round(x float64, prec int) float64 {
+	var rounder float64
+	pow := math.Pow(10, float64(prec))
+	intermed := x * pow
+	_, frac := math.Modf(intermed)
+	if frac >= 0.5 {
+		rounder = math.Ceil(intermed)
+	} else {
+		rounder = math.Floor(intermed)
+	}
+
+	return rounder / pow
 }
