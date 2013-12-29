@@ -2,8 +2,12 @@
 package biscuit
 
 import (
+	"encoding/csv"
+	"io"
 	"io/ioutil"
 	"math"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -33,7 +37,7 @@ func NewProfileFromText(label string, text string, n int) *Profile {
 // NewProfileFromFile attempts to open a file at the specified path and parse its
 // contents as text using NewProfileFromText. This is nothing more than a
 // convienence method.
-func (p *Profile) NewProfileFromFile(label string, filepath string, n int) *Profile {
+func NewProfileFromFile(label string, filepath string, n int) *Profile {
 	bytes, err := ioutil.ReadFile(filepath)
 
 	if err != nil {
@@ -46,14 +50,43 @@ func (p *Profile) NewProfileFromFile(label string, filepath string, n int) *Prof
 // NewProfileFromNgramCSV can be used to speed up the calculation process by
 // specifying a precalculated ngram table stored in a CSV file. This method
 // simply buffers the file and creates the table in memory on-the-fly.
-func (p *Profile) NewProfileFromNgramCSV(label string, filepath string, n int) *Profile {
-	// bytes, err := ioutil.ReadFile(filepath)
+func NewProfileFromNgramCSV(label string, filepath string, n int) (*Profile, error) {
+	if _, err := os.Stat(filepath); os.IsNotExist(err) {
+		return nil, err
+	}
 
-	// if err != nil {
-	// 	panic(err)
-	// }
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-	return nil
+	p := new(Profile)
+
+	p.N = n
+	p.Label = label
+	p.Ngrams = make(map[string]int)
+
+	reader := csv.NewReader(file)
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+
+		i, err := strconv.Atoi(record[1])
+		if err != nil {
+			return nil, err
+		}
+
+		p.Ngrams[record[0]] = i
+	}
+
+	p.Length()
+
+	return p, nil
 }
 
 // ParseTextToNgramTable creates an ngram table from the specified text. This
