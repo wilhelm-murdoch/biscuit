@@ -56,8 +56,8 @@ func (p *Profile) NewProfileFromNgramCSV(label string, filepath string, n int) *
 	return nil
 }
 
-// Parse creates an ngram table from the specified text. This table
-// is a map whose keys are a distinct set of n-length character sequences
+// ParseTextToNgramTable creates an ngram table from the specified text. This
+// table is a map whose keys are a distinct set of n-length character sequences
 // associated with their frequency.
 func (p *Profile) ParseTextToNgramTable(text string) {
 	chars := make([]rune, 2*p.N)
