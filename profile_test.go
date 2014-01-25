@@ -46,10 +46,28 @@ func TestProfile(t *testing.T) {
 		})
 	})
 
-	Convey("Subject: Open pre-calculated ngram table from csv...", t, func() {
+	Convey("Subject: Create ngram tables from files...", t, func() {
 		Convey("Given a corpora of precalculated ngram tables", func() {
-			Convey("Opening a csv table should yield a new biscuit.Profile instance", func() {
+			Convey("Opening a csv file should yield a new biscuit.Profile instance", func() {
+				samples, _ := filepath.Glob("./corpora/*.csv")
 
+				var p *Profile
+				for _, file := range samples {
+					p, _ = NewProfileFromNgramCSV(filepath.Base(file)[:2], file, 3)
+					So(filepath.Base(file)[:2], ShouldEqual, p.Label)
+					So(p.length, ShouldEqual, p.Length())
+				}
+			})
+
+			Convey("Opening a text file should yield a new biscuit.Profile instance", func() {
+				samples, _ := filepath.Glob("./corpora/*.txt")
+
+				var p *Profile
+				for _, file := range samples {
+					p = NewProfileFromFile(filepath.Base(file)[:2], file, 3)
+					So(filepath.Base(file)[:2], ShouldEqual, p.Label)
+					So(p.length, ShouldEqual, p.Length())
+				}
 			})
 		})
 	})
