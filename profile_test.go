@@ -46,6 +46,14 @@ func TestProfile(t *testing.T) {
 		})
 	})
 
+	Convey("Subject: Open pre-calculated ngram table from csv...", t, func() {
+		Convey("Given a corpora of precalculated ngram tables", func() {
+			Convey("Opening a csv table should yield a new biscuit.Profile instance", func() {
+
+			})
+		})
+	})
+
 	Convey("Subject: Scoring and comparing profiles", t, func() {
 		Convey("Given a corpora of sample text in various languages", func() {
 			corpora := make(map[string]string)
