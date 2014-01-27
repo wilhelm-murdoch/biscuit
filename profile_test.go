@@ -64,7 +64,7 @@ func TestProfile(t *testing.T) {
 
 				var p *Profile
 				for _, file := range samples {
-					p = NewProfileFromFile(filepath.Base(file)[:2], file, 3)
+					p, _ = NewProfileFromFile(filepath.Base(file)[:2], file, 3)
 					So(filepath.Base(file)[:2], ShouldEqual, p.Label)
 					So(p.length, ShouldEqual, p.Length())
 				}
@@ -93,18 +93,21 @@ func TestProfile(t *testing.T) {
 
 			Convey("Comparing a corpus against itself should yield an exact match", func() {
 				for _, profile := range profiles {
-					So(Round(profile.Subtract(profile), 1), ShouldBeGreaterThanOrEqualTo, 1)
+					difference, _ := profile.Subtract(profile)
+					So(Round(difference, 1), ShouldBeGreaterThanOrEqualTo, 1)
 				}
 			})
 
 			Convey("Comparing a corpus of one language against another should yield partial match", func() {
-				difference := profiles["en"].Subtract(profiles["de"])
+				difference, _ := profiles["en"].Subtract(profiles["de"])
 				So(difference, ShouldBeGreaterThanOrEqualTo, 0)
 				So(difference, ShouldBeLessThan, 1)
 			})
 
 			Convey("Comparing a corpus of one language against another should yield the same score regardless of order", func() {
-				So(profiles["de"].Subtract(profiles["en"]), ShouldEqual, profiles["en"].Subtract(profiles["de"]))
+				difference1, _ := profiles["de"].Subtract(profiles["en"])
+				difference2, _ := profiles["en"].Subtract(profiles["de"])
+				So(difference1, ShouldEqual, difference2)
 			})
 
 			Convey("The vectors of each profile should be properly calculated", func() {
@@ -115,27 +118,32 @@ func TestProfile(t *testing.T) {
 
 			Convey("DE sample text should score as DE", func() {
 				unknown := NewProfileFromText("unknown", "Der Kanalinspektor natrlich!", n)
-				So(unknown.Match(profileInstances), ShouldEqual, "de")
+				match, _ := unknown.Match(profileInstances)
+				So(match, ShouldEqual, "de")
 			})
 
 			Convey("ES sample text should score as ES", func() {
 				unknown := NewProfileFromText("unknown", "con sus aperos formados con prendas de procedencia.", n)
-				So(unknown.Match(profileInstances), ShouldEqual, "es")
+				match, _ := unknown.Match(profileInstances)
+				So(match, ShouldEqual, "es")
 			})
 
 			Convey("FR sample text should score as FR", func() {
 				unknown := NewProfileFromText("unknown", "Monsieur le baron était un des plus puissants.", n)
-				So(unknown.Match(profileInstances), ShouldEqual, "fr")
+				match, _ := unknown.Match(profileInstances)
+				So(match, ShouldEqual, "fr")
 			})
 
 			Convey("JP sample text should score as JP", func() {
 				unknown := NewProfileFromText("unknown", "っともすずしく、さらになんの奇跡か、季節はずれというのにまだイチゴが食", n)
-				So(unknown.Match(profileInstances), ShouldEqual, "jp")
+				match, _ := unknown.Match(profileInstances)
+				So(match, ShouldEqual, "jp")
 			})
 
 			Convey("TH sample text should score as TH", func() {
 				unknown := NewProfileFromText("unknown", "ผู้ฟัง ของเขา รู้ว่า เขากำลังจะ พูดแบบนี้ พวกเขารู้มาก", n)
-				So(unknown.Match(profileInstances), ShouldEqual, "th")
+				match, _ := unknown.Match(profileInstances)
+				So(match, ShouldEqual, "th")
 			})
 		})
 	})
