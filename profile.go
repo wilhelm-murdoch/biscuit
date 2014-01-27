@@ -3,22 +3,15 @@ package biscuit
 
 import (
 	"encoding/csv"
-	_ "errors"
+	"errors"
 	"io"
 	"io/ioutil"
 	"math"
 	"os"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
-
-type profileError struct {
-	message string
-}
-
-func (p *profileError) Error() string {
-	return p.message
-}
 
 // Profile is a structure we use to create an NGram data model. This stores all
 // metadata associated with a processed corpus of text.
@@ -60,7 +53,7 @@ func NewProfileFromFile(label string, filepath string, n int) (*Profile, error) 
 // specifying a precalculated ngram table stored in a CSV file. This method
 // simply buffers the file and creates the table in memory on-the-fly. Will
 // return any errors encountered during I/O.
-func NewProfileFromNgramCSV(label string, filepath string, n int) (*Profile, error) {
+func NewProfileFromNgramCSV(label string, filepath string, n int, checkNgramLength bool) (*Profile, error) {
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
 		return nil, err
 	}
@@ -89,6 +82,10 @@ func NewProfileFromNgramCSV(label string, filepath string, n int) (*Profile, err
 		i, err := strconv.Atoi(record[1])
 		if err != nil {
 			return nil, err
+		}
+
+		if checkNgramLength && utf8.RuneCountInString(record[0]) != n {
+			return nil, errors.New("heh.")
 		}
 
 		p.Ngrams[record[0]] = i
@@ -134,7 +131,7 @@ func (p *Profile) Length() float64 {
 // Will return an error if the profiles have different ngram lengths.
 func (p *Profile) Subtract(profile *Profile) (float64, error) {
 	if p.N != profile.N {
-		return 0, &profileError{"You cannot subtract profiles of different ngram lengths."}
+		return 0, errors.New("You cannot subtract profiles of different ngram lengths.")
 	}
 
 	total := 0.0
