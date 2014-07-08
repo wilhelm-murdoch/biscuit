@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math"
 	"strings"
+	"sync"
 )
 
 // Profile is a structure we use to create an NGram data model. This stores all
@@ -76,10 +77,9 @@ func (p *Profile) Length() float64 {
 // and the current profile instance. This is done by using the angle between
 // the two vector lengths and determining their cosine. This results in a float
 // between 1 and 0. The closer the return value is to 1, the better the match.
-// Will return an error if the profiles have different ngram lengths.
-func (p *Profile) Subtract(profile *Profile) (float64, error) {
+func (p *Profile) Subtract(profile *Profile) float64 {
 	if p.N != profile.N {
-		return 0, errors.New("You cannot subtract profiles of different ngram lengths.")
+		return 0
 	}
 
 	total := 0.0
@@ -89,22 +89,32 @@ func (p *Profile) Subtract(profile *Profile) (float64, error) {
 		}
 	}
 
-	return total / (p.length * profile.length), nil
+	return total / (p.length * profile.length)
 }
 
 // Match returns the best possible match among the current profile instance
-// and the specified argument array of profile instances. Will return any
-// error that bubbles up from profile.Profile.Subtract().
+// and the specified argument array of profile instances. This will also
+// return an error if any of the associated profiles' ngram lengths differ.
 func (p *Profile) Match(profiles []*Profile) (string, error) {
 	scores := make(map[string]float64)
 
+	var wg sync.WaitGroup
+
 	for _, profile := range profiles {
-		difference, err := p.Subtract(profile)
-		if err != nil {
-			return "", err
+		if p.N != profile.N {
+			return "", errors.New("All profiles must be of the same ngram length.")
 		}
-		scores[profile.Label] = difference
+
+		wg.Add(1)
+
+		go func(profile *Profile) {
+			defer wg.Done()
+
+			scores[profile.Label] = p.Subtract(profile)
+		}(profile)
 	}
+
+	wg.Wait()
 
 	return SortedKeys(scores)[0], nil
 }

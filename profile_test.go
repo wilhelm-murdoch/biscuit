@@ -2,11 +2,51 @@ package biscuit
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"path/filepath"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func BenchmarkProfileFromFile(b *testing.B) {
+	files := make(map[string]string)
+	samples, _ := filepath.Glob("./corpora/*.txt")
+
+	var labels = make([]string, len(samples))
+
+	for i, file := range samples {
+		label := filepath.Base(file)[:2]
+		labels[i] = label
+		files[label] = file
+	}
+
+	for i := 0; i < b.N; i++ {
+		label := labels[rand.Intn(len(labels))]
+		NewProfileFromFile(label, files[label], 3)
+	}
+}
+
+func BenchmarkMatch(b *testing.B) {
+	profiles := make(map[string]*Profile)
+	files, _ := filepath.Glob("./corpora/*.txt")
+
+	var labels = make([]string, len(files))
+	var profileInstances = make([]*Profile, 0, len(profiles))
+
+	for i, file := range files {
+		label := filepath.Base(file)[:2]
+		labels[i] = label
+		profile, _ := NewProfileFromFile(label, file, 3)
+		profiles[label] = profile
+		profileInstances = append(profileInstances, profile)
+	}
+
+	for i := 0; i < b.N; i++ {
+		label := labels[rand.Intn(len(labels))]
+		profiles[label].Match(profileInstances)
+	}
+}
 
 func TestProfile(t *testing.T) {
 	testTable := make(map[string]int)
@@ -47,6 +87,21 @@ func TestProfile(t *testing.T) {
 		})
 	})
 
+	Convey("Subject: Create ngram tables from files...", t, func() {
+		Convey("Given a corpora of precalculated ngram tables", func() {
+			Convey("Opening a text file should yield a new biscuit.Profile instance", func() {
+				samples, _ := filepath.Glob("./corpora/*.txt")
+
+				for _, file := range samples {
+					p, err := NewProfileFromFile(filepath.Base(file)[:2], file, 3)
+					So(err, ShouldEqual, nil)
+					So(filepath.Base(file)[:2], ShouldEqual, p.Label)
+					So(p.length, ShouldEqual, p.Length())
+				}
+			})
+		})
+	})
+
 	Convey("Subject: Scoring and comparing profiles", t, func() {
 		Convey("Given a corpora of sample text in various languages", func() {
 			corpora := make(map[string]string)
@@ -66,26 +121,30 @@ func TestProfile(t *testing.T) {
 				profileInstances = append(profileInstances, profile)
 			}
 
+			Convey("Comparing profiles of different ngram lengths should raise an error", func() {
+				unknown := NewProfileFromText("unknown", "sup", n+1)
+				match, err := unknown.Match(profileInstances)
+				So(match, ShouldEqual, "")
+				So(err, ShouldNotEqual, nil)
+			})
+
 			Convey("Comparing a corpus against itself should yield an exact match", func() {
 				for _, profile := range profiles {
-					difference, err := profile.Subtract(profile)
-					So(err, ShouldEqual, nil)
+					difference := profile.Subtract(profile)
 					So(Round(difference, 1), ShouldBeGreaterThanOrEqualTo, 1)
 				}
 			})
 
 			Convey("Comparing a corpus of one language against another should yield partial match", func() {
-				difference, err := profiles["en"].Subtract(profiles["de"])
-				So(err, ShouldEqual, nil)
+				difference := profiles["en"].Subtract(profiles["de"])
 				So(difference, ShouldBeGreaterThanOrEqualTo, 0)
 				So(difference, ShouldBeLessThan, 1)
 			})
 
 			Convey("Comparing a corpus of one language against another should yield the same score regardless of order", func() {
-				difference1, err := profiles["de"].Subtract(profiles["en"])
-				So(err, ShouldEqual, nil)
-				difference2, err := profiles["en"].Subtract(profiles["de"])
-				So(err, ShouldEqual, nil)
+				difference1 := profiles["de"].Subtract(profiles["en"])
+				difference2 := profiles["en"].Subtract(profiles["de"])
+
 				So(difference1, ShouldEqual, difference2)
 			})
 
