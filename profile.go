@@ -2,15 +2,10 @@
 package biscuit
 
 import (
-	"encoding/csv"
 	"errors"
-	"io"
 	"io/ioutil"
 	"math"
-	"os"
-	"strconv"
 	"strings"
-	"unicode/utf8"
 )
 
 // Profile is a structure we use to create an NGram data model. This stores all
@@ -47,53 +42,6 @@ func NewProfileFromFile(label string, filepath string, n int) (*Profile, error) 
 	}
 
 	return NewProfileFromText(label, string(bytes), n), nil
-}
-
-// NewProfileFromNgramCSV can be used to speed up the calculation process by
-// specifying a precalculated ngram table stored in a CSV file. This method
-// simply buffers the file and creates the table in memory on-the-fly. Will
-// return any errors encountered during I/O.
-func NewProfileFromNgramCSV(label string, filepath string, n int, checkNgramLength bool) (*Profile, error) {
-	if _, err := os.Stat(filepath); os.IsNotExist(err) {
-		return nil, err
-	}
-
-	file, err := os.Open(filepath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	p := new(Profile)
-
-	p.N = n
-	p.Label = label
-	p.Ngrams = make(map[string]int)
-
-	reader := csv.NewReader(file)
-	for {
-		record, err := reader.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
-		}
-
-		i, err := strconv.Atoi(record[1])
-		if err != nil {
-			return nil, err
-		}
-
-		if checkNgramLength && utf8.RuneCountInString(record[0]) != n {
-			return nil, errors.New("heh.")
-		}
-
-		p.Ngrams[record[0]] = i
-	}
-
-	p.Length()
-
-	return p, nil
 }
 
 // ParseTextToNgramTable creates an ngram table from the specified text. This

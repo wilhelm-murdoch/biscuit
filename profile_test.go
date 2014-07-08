@@ -1,10 +1,11 @@
 package biscuit
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestProfile(t *testing.T) {
@@ -41,33 +42,6 @@ func TestProfile(t *testing.T) {
 				So(english.N, ShouldEqual, n)
 				for sequence := range english.Ngrams {
 					So(len(sequence), ShouldEqual, n)
-				}
-			})
-		})
-	})
-
-	Convey("Subject: Create ngram tables from files...", t, func() {
-		Convey("Given a corpora of precalculated ngram tables", func() {
-			Convey("Opening a csv file should yield a new biscuit.Profile instance", func() {
-				samples, _ := filepath.Glob("./corpora/*.csv")
-
-				for _, file := range samples {
-					p, err := NewProfileFromNgramCSV(filepath.Base(file)[:2], file, 3, true)
-
-					So(err, ShouldEqual, nil)
-					So(filepath.Base(file)[:2], ShouldEqual, p.Label)
-					So(p.length, ShouldEqual, p.Length())
-				}
-			})
-
-			Convey("Opening a text file should yield a new biscuit.Profile instance", func() {
-				samples, _ := filepath.Glob("./corpora/*.txt")
-
-				for _, file := range samples {
-					p, err := NewProfileFromFile(filepath.Base(file)[:2], file, 3)
-					So(err, ShouldEqual, nil)
-					So(filepath.Base(file)[:2], ShouldEqual, p.Label)
-					So(p.length, ShouldEqual, p.Length())
 				}
 			})
 		})
