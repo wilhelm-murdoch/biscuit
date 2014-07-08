@@ -87,8 +87,13 @@ func TestProfile(t *testing.T) {
 		})
 	})
 
-	Convey("Subject: Create ngram tables from files...", t, func() {
-		Convey("Given a corpora of precalculated ngram tables", func() {
+	Convey("Subject: Create ngram tables from files", t, func() {
+		Convey("Given a corpora of text files", func() {
+			Convey("Opening an invalid text file should yield an error", func() {
+				_, err := NewProfileFromFile("unknown", "/nothing/here.wut", 3)
+				So(err, ShouldNotEqual, nil)
+			})
+
 			Convey("Opening a text file should yield a new biscuit.Profile instance", func() {
 				samples, _ := filepath.Glob("./corpora/*.txt")
 
@@ -121,7 +126,16 @@ func TestProfile(t *testing.T) {
 				profileInstances = append(profileInstances, profile)
 			}
 
-			Convey("Comparing profiles of different ngram lengths should raise an error", func() {
+			Convey("Subtracting one profile from another with different ngram lengths should return zero(0)", func() {
+				profile1 := NewProfileFromText("profile1", "sup", 1)
+				profile2 := NewProfileFromText("profile2", "hey", 2)
+
+				difference := profile1.Subtract(profile2)
+
+				So(difference, ShouldEqual, 0)
+			})
+
+			Convey("Matching profiles of different ngram lengths should raise an error", func() {
 				unknown := NewProfileFromText("unknown", "sup", n+1)
 				match, err := unknown.Match(profileInstances)
 				So(match, ShouldEqual, "")
