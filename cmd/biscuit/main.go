@@ -149,7 +149,8 @@ func main() {
 		fmt.Fprintln(w, "Label:\tScore:")
 
 		for _, key := range sorted {
-			fmt.Fprintln(w, fmt.Sprintf("%s\t%f", key, 100*scores[key])+"%")
+			score := biscuit.Round(100*scores[key], 3)
+			fmt.Fprintln(w, fmt.Sprintf("%s\t", key)+fmt.Sprintf("%f", score)[0:4]+"%")
 		}
 
 		w.Flush()
@@ -157,5 +158,6 @@ func main() {
 		match, _ := unknown.MatchReturnBest(profiles)
 		fmt.Println(match)
 	}
+
 	os.Exit(0)
 }
