@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/tabwriter"
 
 	"github.com/docopt/docopt.go"
 	"github.com/wilhelm-murdoch/biscuit"
@@ -18,8 +19,13 @@ var (
 	usage   = `Biscuit - A simple command line utility for language detection.
 
 	Usage:
-	 biscuit (--file=<file> | --text=<text>) [--length=<length>] [--extension=<extension>] --path=<path>
+	 biscuit (--file=<file> | --text=<text>) [--length=<length>] [--extension=<extension>] [--table] --path=<path> 
 	 biscuit (--help | --version)
+
+	Examples:
+	 biscuit -t "c'est la vie." -p /path/to/corpora
+	 biscuit -f /path/to/test/file -p /path/to/corpora
+	 biscuit --file /path/to/test/file --path /path/to/corpora --extension .data
 
 	Options:
 	 -f --file=<file>            Path to file containing text you want to match.
@@ -27,6 +33,7 @@ var (
 	 -l --length=<length>        The desired Ngram length. [default: 3]
 	 -p --path=<path>            Path to library of comparison texts.
 	 -e --extension=<extension>  File extension for comparison texts. [default: .txt]
+	 --table                     Will display a table of sorted results.
 	 -h --help                   Will display this help screen.
 	 -v --version                Displays the current version of Biscuit.`
 )
@@ -46,7 +53,7 @@ func main() {
 			bytes, err := ioutil.ReadFile(file.(string))
 
 			if err != nil {
-				fmt.Println("Invalid file specified;", err)
+				fmt.Println("Invalid file specified:", err)
 				os.Exit(1)
 			}
 
@@ -64,21 +71,35 @@ func main() {
 		fmt.Println("There was a problem with your path:", err)
 		os.Exit(1)
 	}
-	// use io/ioutil/ReadDir here instead
+
+	pathInfo, err := os.Stat(path)
+	if err != nil {
+		fmt.Println("There was a problem with your path:", err)
+		os.Exit(1)
+	}
+
+	if !pathInfo.IsDir() {
+		fmt.Println("--path must be a directory ...")
+		os.Exit(1)
+	}
+
+	dir, err := ioutil.ReadDir(path)
+	if err != nil {
+		fmt.Println("There was a problem with your path:", err)
+		os.Exit(1)
+	}
+
 	ext := arguments["--extension"].(string)
 	files := make([]string, 0)
-	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
+	for _, file := range dir {
+		if file.IsDir() {
+			continue
 		}
 
-		if filepath.Ext(path) == strings.ToLower(ext) {
-			fmt.Println(path)
-			files = append(files, path)
+		if filepath.Ext(file.Name()) == strings.ToLower(ext) {
+			files = append(files, path+"/"+file.Name())
 		}
-
-		return nil
-	})
+	}
 
 	if len(files) == 0 {
 		fmt.Println("Could not find comparison library. Double check your path and extension.")
@@ -88,7 +109,7 @@ func main() {
 	l := arguments["--length"].(string)
 	length, err := strconv.Atoi(l)
 	if err != nil {
-		fmt.Println("There was a problem defining ngram length;", err)
+		fmt.Println("There was a problem defining ngram length:", err)
 		os.Exit(1)
 	}
 
@@ -118,8 +139,23 @@ func main() {
 
 	unknown := biscuit.NewProfileFromText("unknown", content, length)
 
-	match, _ := unknown.Match(profiles)
+	table := arguments["--table"].(bool)
+	if table {
+		sorted, scores, _ := unknown.MatchReturnAll(profiles)
 
-	fmt.Println("result:", match)
+		w := new(tabwriter.Writer)
+		w.Init(os.Stdout, 0, 9, 5, ' ', 0)
+
+		fmt.Fprintln(w, "Label:\tScore:")
+
+		for _, key := range sorted {
+			fmt.Fprintln(w, fmt.Sprintf("%s\t%f", key, 100*scores[key])+"%")
+		}
+
+		w.Flush()
+	} else {
+		match, _ := unknown.MatchReturnBest(profiles)
+		fmt.Println(match)
+	}
 	os.Exit(0)
 }

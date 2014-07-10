@@ -44,7 +44,7 @@ func BenchmarkMatch(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		label := labels[rand.Intn(len(labels))]
-		profiles[label].Match(profileInstances)
+		profiles[label].MatchReturnBest(profileInstances)
 	}
 }
 
@@ -115,7 +115,8 @@ func TestProfile(t *testing.T) {
 
 			for _, file := range samples {
 				text, _ := ioutil.ReadFile(file)
-				label = filepath.Base(file)[:2]
+				fileName := filepath.Base(file)
+				label = fileName[0 : len(fileName)-len(filepath.Ext(fileName))]
 				corpora[label] = string(text)
 				profiles[label] = NewProfileFromText(label, corpora[label], n)
 			}
@@ -137,7 +138,7 @@ func TestProfile(t *testing.T) {
 
 			Convey("Matching profiles of different ngram lengths should raise an error", func() {
 				unknown := NewProfileFromText("unknown", "sup", n+1)
-				match, err := unknown.Match(profileInstances)
+				match, err := unknown.MatchReturnBest(profileInstances)
 				So(match, ShouldEqual, "")
 				So(err, ShouldNotEqual, nil)
 			})
@@ -150,14 +151,14 @@ func TestProfile(t *testing.T) {
 			})
 
 			Convey("Comparing a corpus of one language against another should yield partial match", func() {
-				difference := profiles["en"].Subtract(profiles["de"])
+				difference := profiles["english"].Subtract(profiles["german"])
 				So(difference, ShouldBeGreaterThanOrEqualTo, 0)
 				So(difference, ShouldBeLessThan, 1)
 			})
 
 			Convey("Comparing a corpus of one language against another should yield the same score regardless of order", func() {
-				difference1 := profiles["de"].Subtract(profiles["en"])
-				difference2 := profiles["en"].Subtract(profiles["de"])
+				difference1 := profiles["german"].Subtract(profiles["english"])
+				difference2 := profiles["english"].Subtract(profiles["german"])
 
 				So(difference1, ShouldEqual, difference2)
 			})
@@ -168,39 +169,39 @@ func TestProfile(t *testing.T) {
 				}
 			})
 
-			Convey("DE sample text should score as DE", func() {
+			Convey("DE sample text should score as GERMAN", func() {
 				unknown := NewProfileFromText("unknown", "Der Kanalinspektor natrlich!", n)
-				match, err := unknown.Match(profileInstances)
+				match, err := unknown.MatchReturnBest(profileInstances)
 				So(err, ShouldEqual, nil)
-				So(match, ShouldEqual, "de")
+				So(match, ShouldEqual, "german")
 			})
 
-			Convey("ES sample text should score as ES", func() {
+			Convey("ES sample text should score as SPANISH", func() {
 				unknown := NewProfileFromText("unknown", "con sus aperos formados con prendas de procedencia.", n)
-				match, err := unknown.Match(profileInstances)
+				match, err := unknown.MatchReturnBest(profileInstances)
 				So(err, ShouldEqual, nil)
-				So(match, ShouldEqual, "es")
+				So(match, ShouldEqual, "spanish")
 			})
 
-			Convey("FR sample text should score as FR", func() {
+			Convey("FR sample text should score as FRENCH", func() {
 				unknown := NewProfileFromText("unknown", "Monsieur le baron était un des plus puissants.", n)
-				match, err := unknown.Match(profileInstances)
+				match, err := unknown.MatchReturnBest(profileInstances)
 				So(err, ShouldEqual, nil)
-				So(match, ShouldEqual, "fr")
+				So(match, ShouldEqual, "french")
 			})
 
-			Convey("JP sample text should score as JP", func() {
+			Convey("JP sample text should score as JAPANESE", func() {
 				unknown := NewProfileFromText("unknown", "っともすずしく、さらになんの奇跡か、季節はずれというのにまだイチゴが食", n)
-				match, err := unknown.Match(profileInstances)
+				match, err := unknown.MatchReturnBest(profileInstances)
 				So(err, ShouldEqual, nil)
-				So(match, ShouldEqual, "jp")
+				So(match, ShouldEqual, "japanese")
 			})
 
-			Convey("TH sample text should score as TH", func() {
+			Convey("TH sample text should score as THAI", func() {
 				unknown := NewProfileFromText("unknown", "ผู้ฟัง ของเขา รู้ว่า เขากำลังจะ พูดแบบนี้ พวกเขารู้มาก", n)
-				match, err := unknown.Match(profileInstances)
+				match, err := unknown.MatchReturnBest(profileInstances)
 				So(err, ShouldEqual, nil)
-				So(match, ShouldEqual, "th")
+				So(match, ShouldEqual, "thai")
 			})
 		})
 	})

@@ -92,17 +92,17 @@ func (p *Profile) Subtract(profile *Profile) float64 {
 	return total / (p.length * profile.length)
 }
 
-// Match returns the best possible match among the current profile instance
-// and the specified argument array of profile instances. This will also
-// return an error if any of the associated profiles' ngram lengths differ.
-func (p *Profile) Match(profiles []*Profile) (string, error) {
+// MatchReturnAll returns a sorted map of all resulting scores against the
+// specified profile instances. This will also return an error if any of
+// the associated profiles' ngram lengths differ.
+func (p *Profile) MatchReturnAll(profiles []*Profile) ([]string, map[string]float64, error) {
 	scores := make(map[string]float64)
 
 	var wg sync.WaitGroup
 
 	for _, profile := range profiles {
 		if p.N != profile.N {
-			return "", errors.New("All profiles must be of the same ngram length.")
+			return nil, nil, errors.New("All profiles must be of the same ngram length.")
 		}
 
 		wg.Add(1)
@@ -116,5 +116,18 @@ func (p *Profile) Match(profiles []*Profile) (string, error) {
 
 	wg.Wait()
 
-	return SortedKeys(scores)[0], nil
+	return SortedKeys(scores), scores, nil
+}
+
+// MatchReturnBest returns the best possible match among the current profile
+// instance and the specified argument array of profile instances. This will
+// return any errors bubbled up from MatchReturnAll.
+func (p *Profile) MatchReturnBest(profiles []*Profile) (string, error) {
+	matches, _, err := p.MatchReturnAll(profiles)
+
+	if err != nil {
+		return "", err
+	}
+
+	return matches[0], nil
 }
