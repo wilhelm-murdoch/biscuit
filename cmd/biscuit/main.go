@@ -90,7 +90,7 @@ func main() {
 	}
 
 	ext := arguments["--extension"].(string)
-	files := make([]string, 0)
+	var files []string
 	for _, file := range dir {
 		if file.IsDir() {
 			continue
